@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm test
+      - name: Live check against Apple
+        run: node scripts/check.mjs
+      - run: node scripts/build-site.mjs
+      - name: Verify Bayshore data
+        run: |
+          node -e '
+            const s = require("./_site/status.json");
+            console.log(JSON.stringify({ store: s.store, lastError: s.lastError, parts: s.parts.map(p => `${p.capacity} ${p.color}: ${p.available ? "IN STOCK" : p.quote}`) }, null, 2));
+            if (!s.lastSuccessAt || !s.store.found || s.parts.some(p => p.quote === "No data")) process.exit(1);
+          '
