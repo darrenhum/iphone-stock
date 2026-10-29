@@ -1,0 +1,19 @@
+{
+  "name": "iphone-stock",
+  "private": true,
+  "type": "module",
+  "description": "Apple Bayshore iPhone Duo pickup stock tracker (GitHub Pages PWA + Actions poller)",
+  "scripts": {
+    "check": "node scripts/check.mjs",
+    "test-push": "node scripts/check.mjs --test-push",
+    "setup-push": "node scripts/setup-push.mjs",
+    "build-site": "node scripts/build-site.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "web-push": "^3.6.7"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "country": "ca",
+  "location": "K2B 8C1",
+  "storeNumber": "R490",
+  "storeName": "Apple Bayshore Shopping Centre",
+  "storeCity": "Ottawa, ON",
+  "productName": "iPhone Duo",
+  "productUrl": "https://www.apple.com/ca/shop/buy-iphone/iphone-duo",
+  "alertStores": ["R490"],
+  "parts": {
+    "MK244VC/A": { "name": "iPhone Duo 256GB Star White", "color": "Star White", "capacity": "256GB" },
+    "MK254VC/A": { "name": "iPhone Duo 256GB Night Sky", "color": "Night Sky", "capacity": "256GB" },
+    "MK264VC/A": { "name": "iPhone Duo 512GB Star White", "color": "Star White", "capacity": "512GB" },
+    "MK274VC/A": { "name": "iPhone Duo 512GB Night Sky", "color": "Night Sky", "capacity": "512GB" },
+    "MK284VC/A": { "name": "iPhone Duo 1TB Star White", "color": "Star White", "capacity": "1TB" },
+    "MK294VC/A": { "name": "iPhone Duo 1TB Night Sky", "color": "Night Sky", "capacity": "1TB" },
+    "MK2A4VC/A": { "name": "iPhone Duo 2TB Star White", "color": "Star White", "capacity": "2TB" },
+    "MK2C4VC/A": { "name": "iPhone Duo 2TB Night Sky", "color": "Night Sky", "capacity": "2TB" }
+  }
+}

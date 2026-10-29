@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Duo Stock · Apple Bayshore</title>
+  <meta name="description" content="Live iPhone Duo in-store pickup availability at Apple Bayshore Shopping Centre, Ottawa.">
+  <meta name="theme-color" content="#000000">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Duo Stock">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="wrap">
+    <header class="top">
+      <div>
+        <p class="eyebrow">In-store pickup radar</p>
+        <h1 id="title">iPhone Duo</h1>
+        <p class="sub" id="store">Apple Bayshore Shopping Centre · Ottawa, ON</p>
+      </div>
+      <button id="refresh" class="icon-btn" aria-label="Refresh">↻</button>
+    </header>
+
+    <section id="hero" class="hero loading" aria-live="polite">
+      <div class="pulse" aria-hidden="true"></div>
+      <div>
+        <h2 id="hero-title">Loading…</h2>
+        <p id="hero-sub" class="muted">Fetching latest stock</p>
+      </div>
+    </section>
+
+    <section id="install" class="card hint" hidden>
+      <h3>Get iOS notifications</h3>
+      <p>Tap <strong>Share</strong> <span aria-hidden="true">⎋</span> → <strong>Add to Home Screen</strong>, then open <em>Duo Stock</em> from your Home Screen and tap <strong>Enable notifications</strong>.</p>
+      <p class="muted small">iOS 16.4+ only delivers web push to Home Screen apps.</p>
+    </section>
+
+    <section id="notify" class="card" hidden>
+      <div class="row">
+        <div>
+          <h3>Push notifications</h3>
+          <p id="notify-status" class="muted small">Off</p>
+        </div>
+        <button id="notify-btn" class="btn">Enable notifications</button>
+      </div>
+      <div id="sub-panel" hidden>
+        <p class="small">Last step: save this device to the tracker so GitHub Actions can push to it.</p>
+        <div class="row gap">
+          <a id="sub-save" class="btn" target="_blank" rel="noopener">Save device on GitHub</a>
+          <button id="sub-copy" class="btn ghost">Copy JSON</button>
+        </div>
+        <p class="muted small">Opens GitHub with the file prefilled — just tap <strong>Commit changes</strong>. Alternatively paste the JSON into the <code>PUSH_SUBSCRIPTIONS</code> repo secret.</p>
+      </div>
+    </section>
+
+    <section>
+      <h3 class="section-title">Models</h3>
+      <div id="grid" class="grid"></div>
+    </section>
+
+    <a id="buy" class="btn wide" href="https://www.apple.com/ca/shop/buy-iphone/iphone-duo" target="_blank" rel="noopener">Open in Apple Store</a>
+
+    <section>
+      <details class="card" open>
+        <summary><h3>Restock history</h3></summary>
+        <div class="row history-head">
+          <p id="history-summary" class="muted small">—</p>
+          <select id="history-filter" aria-label="Filter by model"><option value="">All models</option></select>
+        </div>
+        <div id="hours" class="hours" aria-label="Restocks by hour of day"></div>
+        <ul id="history" class="list"></ul>
+        <button id="history-more" class="btn ghost wide" hidden>Show more</button>
+      </details>
+    </section>
+
+    <section>
+      <details class="card">
+        <summary><h3>Nearby stores</h3></summary>
+        <ul id="nearby" class="list"></ul>
+      </details>
+    </section>
+
+    <section>
+      <details class="card" open>
+        <summary><h3>Recent changes</h3></summary>
+        <ul id="events" class="list"></ul>
+      </details>
+    </section>
+
+    <footer class="muted small">
+      <p id="meta">—</p>
+      <p>Data from Apple's public pickup feed via GitHub Actions. Not affiliated with Apple. Availability can change in seconds — always confirm in the Apple Store app.</p>
+    </footer>
+  </main>
+  <script src="app.js" type="module"></script>
+</body>
+</html>
