@@ -28,6 +28,9 @@ fs.writeFileSync(path.join(OUT_DIR, 'app-config.json'), JSON.stringify(appConfig
 const swPath = path.join(OUT_DIR, 'sw.js');
 fs.writeFileSync(swPath, fs.readFileSync(swPath, 'utf8').replace('__BUILD_ID__', Date.now().toString(36)));
 
+if (!fs.existsSync(path.join(OUT_DIR, 'history.json'))) {
+  fs.writeFileSync(path.join(OUT_DIR, 'history.json'), JSON.stringify({ restocks: [], parts: config.parts }));
+}
 if (!fs.existsSync(path.join(OUT_DIR, 'status.json'))) {
   fs.writeFileSync(path.join(OUT_DIR, 'status.json'), JSON.stringify({ generatedAt: null, parts: [], nearby: [], events: [] }));
 }

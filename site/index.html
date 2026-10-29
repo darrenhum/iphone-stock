@@ -66,6 +66,19 @@
     <a id="buy" class="btn wide" href="https://www.apple.com/ca/shop/buy-iphone/iphone-duo" target="_blank" rel="noopener">Open in Apple Store</a>
 
     <section>
+      <details class="card" open>
+        <summary><h3>Restock history</h3></summary>
+        <div class="row history-head">
+          <p id="history-summary" class="muted small">—</p>
+          <select id="history-filter" aria-label="Filter by model"><option value="">All models</option></select>
+        </div>
+        <div id="hours" class="hours" aria-label="Restocks by hour of day"></div>
+        <ul id="history" class="list"></ul>
+        <button id="history-more" class="btn ghost wide" hidden>Show more</button>
+      </details>
+    </section>
+
+    <section>
       <details class="card">
         <summary><h3>Nearby stores</h3></summary>
         <ul id="nearby" class="list"></ul>

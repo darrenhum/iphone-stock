@@ -47,6 +47,34 @@ export function parseFeed(json, config) {
   };
 }
 
+// Appends/closes restock records for one store based on diff changes.
+// A record is { part, name, storeNumber, start, end, durationSec } with end=null while still in stock.
+// Returns a new array (newest first).
+export function updateRestocks(restocks, changes, storeNumber, nowIso, partsMeta = {}) {
+  const list = [...(restocks ?? [])];
+  for (const c of changes) {
+    if (c.storeNumber !== storeNumber) continue;
+    const open = list.find((r) => r.part === c.part && r.storeNumber === storeNumber && !r.end);
+    if (c.available && !open) {
+      list.unshift({ part: c.part, name: partsMeta[c.part]?.name ?? c.part, storeNumber, start: nowIso, end: null, durationSec: null });
+    } else if (!c.available && open) {
+      open.end = nowIso;
+      open.durationSec = Math.max(0, Math.round((Date.parse(nowIso) - Date.parse(open.start)) / 1000));
+    }
+  }
+  return list;
+}
+
+export function restockStats(restocks, part) {
+  const mine = restocks.filter((r) => r.part === part);
+  const closed = mine.filter((r) => r.durationSec != null);
+  return {
+    restockCount: mine.length,
+    lastRestockAt: mine[0]?.start ?? null,
+    avgDurationSec: closed.length ? Math.round(closed.reduce((a, r) => a + r.durationSec, 0) / closed.length) : null,
+  };
+}
+
 // Compares a parsed snapshot to previous availability state.
 // prev: { "<store>|<part>": { available, since } }
 // Returns { next, changes: [{ key, storeNumber, storeName, part, available, quote }] }

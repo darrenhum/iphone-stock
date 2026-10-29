@@ -48,9 +48,9 @@ jobs:
 
       - name: Check Apple pickup stock
         env:
-          # Scheduled runs poll several times so checks happen ~every minute.
-          POLL_ITERATIONS: ${{ github.event_name == 'schedule' && (vars.POLL_ITERATIONS || '4') || '1' }}
-          POLL_INTERVAL_SECONDS: ${{ vars.POLL_INTERVAL_SECONDS || '60' }}
+          # Scheduled runs check every ~20s for ~4 min, filling the gap until the next 5-min cron.
+          POLL_DURATION_SECONDS: ${{ github.event_name == 'schedule' && (vars.POLL_DURATION_SECONDS || '240') || '0' }}
+          POLL_INTERVAL_SECONDS: ${{ vars.POLL_INTERVAL_SECONDS || '20' }}
           VAPID_PUBLIC_KEY: ${{ vars.VAPID_PUBLIC_KEY }}
           VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
           VAPID_SUBJECT: ${{ vars.VAPID_SUBJECT || format('https://{0}.github.io/{1}/', github.repository_owner, github.event.repository.name) }}

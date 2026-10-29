@@ -7,10 +7,10 @@ An [InStock Radar](https://instockradar.com/ca/store/bayshoreshoppingcentre)-sty
 ## How it works
 
 ```
-GitHub Actions (cron, ~1 check/min) ──► Apple pickup feed
+GitHub Actions (cron, check every ~20 s) ──► Apple pickup feed
         │  diff vs. last state (actions/cache)
         ├──► Web Push (VAPID) ──► iOS Home Screen app notification
-        └──► status.json + PWA ──► GitHub Pages
+        └──► status.json + history.json + PWA ──► GitHub Pages
 ```
 
 - **Endpoint:** `https://www.apple.com/ca/shop/retail/pickup-message?pl=true&location=K2B%208C1&parts.0=…`. This is Apple's retail pickup feed, the same one InStock Radar and [Duo-Scanner](https://github.com/VanniDevAI/Duo-Scanner) use. Apple doesn't send CORS headers, so a browser can't call the endpoint directly. The poller runs in GitHub Actions instead.
@@ -23,12 +23,13 @@ GitHub Actions (cron, ~1 check/min) ──► Apple pickup feed
   | 1TB | MK284VC/A | MK294VC/A |
   | 2TB | MK2A4VC/A | MK2C4VC/A |
 
+- **Restock history:** every Bayshore restock (unavailable → in stock) is logged with its start time, sell-out time and time in stock. The page shows per-model counts, a filterable history list, and an hour-of-day chart (Ottawa time). The log is saved to the Actions cache and published as `history.json`. If the cache is evicted, the poller re-seeds the log from the live site, so history is never lost.
 - You get an alert when a Bayshore model changes from unavailable to available (`alertStores` in `config.json`). Nearby stores show on the page but don't send alerts.
 
 ## One-time setup
 
 1. **Turn on Pages:** go to *Settings → Pages → Build and deployment* and set **Source: GitHub Actions**.
-   Pages on a private repo needs a paid plan. On the free plan, make the repo public. Public repos also get unlimited Actions minutes. The poller uses about 4–5 minutes per run and runs up to 288 times a day.
+   Pages on a private repo needs a paid plan. On the free plan, make the repo public. Public repos also get unlimited Actions minutes. Each run takes about 5 minutes and runs up to 288 times a day.
 2. **Create push keys** on a machine where `gh` is logged in:
    ```bash
    npm ci && npm run setup-push
@@ -46,8 +47,8 @@ To send a test later, open *Actions → Stock check & deploy → Run workflow* a
 
 | Setting | Where | Default / purpose |
 |---|---|---|
-| `POLL_ITERATIONS` | repo variable | `4` checks per scheduled run |
-| `POLL_INTERVAL_SECONDS` | repo variable | `60` |
+| `POLL_INTERVAL_SECONDS` | repo variable | `20` seconds between checks (min 10) |
+| `POLL_DURATION_SECONDS` | repo variable | `240`, how long each scheduled run keeps polling |
 | `PUSH_SUBSCRIPTIONS` | repo secret | JSON array of subscriptions, if you'd rather not commit them |
 | `NTFY_TOPIC` | repo secret | Optional backup alerts via [ntfy](https://ntfy.sh) |
 | `VAPID_SUBJECT` | repo variable | Defaults to the site URL |
@@ -66,7 +67,7 @@ python3 -m http.server -d _site
 
 ## Limitations
 
-- GitHub cron is best-effort, and runs can be delayed when GitHub is busy. Each scheduled run checks 4 times, about 1 minute apart.
-- Apple can rate-limit runner IPs (HTTP 541). When that happens, the run stops early and the next run tries again.
+- GitHub cron is best-effort, and runs can be delayed when GitHub is busy. Each scheduled run checks every ~20 s for 4 minutes, so there are about 3 checks a minute. The website updates when each run ends, about every 5 minutes. Push alerts go out immediately.
+- Apple can rate-limit runner IPs (HTTP 541). When that happens, the run stops early and the next run tries again on a fresh runner IP. If you see 541s often, raise `POLL_INTERVAL_SECONDS`.
 - GitHub disables scheduled workflows after 60 days with no repository activity.
 - An alert only reflects Apple's feed at that moment and doesn't hold a phone for you. Buy in the Apple Store app.

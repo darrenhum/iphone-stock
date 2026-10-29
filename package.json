@@ -8,7 +8,7 @@
     "test-push": "node scripts/check.mjs --test-push",
     "setup-push": "node scripts/setup-push.mjs",
     "build-site": "node scripts/build-site.mjs",
-    "test": "node --test test/"
+    "test": "node --test test/*.test.mjs"
   },
   "engines": {
     "node": ">=20"

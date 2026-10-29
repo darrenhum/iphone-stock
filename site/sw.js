@@ -1,6 +1,6 @@
 const CACHE = 'duo-stock-__BUILD_ID__';
 const SHELL = ['./', 'index.html', 'styles.css', 'app.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/apple-touch-icon.png'];
-const LIVE = /\/(status|app-config)\.json$/;
+const LIVE = /\/(status|history|app-config)\.json$/;
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));

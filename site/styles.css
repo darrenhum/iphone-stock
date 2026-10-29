@@ -57,5 +57,15 @@ details[open] summary::after { transform: rotate(-90deg); }
 .list li { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; border-top: 1px solid var(--card2); padding-top: 8px; }
 .list .ok { color: var(--green); } .list .no { color: var(--red); }
 code { background: var(--card2); padding: 1px 5px; border-radius: 6px; font-size: 12px; }
+.sku .restocks { font-size: 12px; color: var(--text); opacity: .8; }
+.history-head { margin-top: 10px; }
+.history-head p { margin: 0; }
+select { background: var(--card2); color: var(--text); border: 0; border-radius: 10px; padding: 8px 10px; font: inherit; font-size: 14px; }
+.list .when { display: grid; text-align: right; }
+.hours { display: grid; grid-template-columns: repeat(24, 1fr); gap: 2px; align-items: end; height: 64px; margin: 14px 0 4px; position: relative; }
+.hours .bar { background: var(--green); border-radius: 3px 3px 0 0; min-height: 2px; opacity: .85; }
+.hours .bar.zero { background: var(--card2); }
+.hours-axis { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
+#history-more { margin-top: 10px; }
 footer p { margin: 6px 0; }
 @media (min-width: 600px) { .grid { grid-template-columns: repeat(4, 1fr); } }

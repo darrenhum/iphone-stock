@@ -3,8 +3,8 @@
 // optional ntfy) alerts, and writes the status.json consumed by the PWA.
 //
 // Env:
-//   POLL_ITERATIONS        checks per run (default 1)
-//   POLL_INTERVAL_SECONDS  seconds between checks (default 60)
+//   POLL_DURATION_SECONDS  keep checking for this long (default 0 = single check)
+//   POLL_INTERVAL_SECONDS  seconds between check starts (default 20, min 10)
 //   STATE_FILE             persisted state (default .state/state.json)
 //   OUT_DIR                where status.json is written (default _site)
 //   VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY / VAPID_SUBJECT
@@ -15,16 +15,18 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import webpush from 'web-push';
-import { USER_AGENT, buildFeedUrl, parseFeed, diffSnapshot } from './lib.mjs';
+import { USER_AGENT, buildFeedUrl, parseFeed, diffSnapshot, updateRestocks, restockStats } from './lib.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'config.json'), 'utf8'));
 const env = process.env;
-const ITERATIONS = Math.max(1, parseInt(env.POLL_ITERATIONS || '1', 10));
-const INTERVAL_MS = Math.max(15, parseFloat(env.POLL_INTERVAL_SECONDS || '60')) * 1000;
+const DURATION_MS = Math.max(0, parseFloat(env.POLL_DURATION_SECONDS || '0')) * 1000;
+const INTERVAL_MS = Math.max(10, parseFloat(env.POLL_INTERVAL_SECONDS || '20')) * 1000;
+const JITTER_MS = 2000;
 const STATE_FILE = path.resolve(ROOT, env.STATE_FILE || '.state/state.json');
 const OUT_DIR = path.resolve(ROOT, env.OUT_DIR || '_site');
 const MAX_EVENTS = 50;
+const MAX_RESTOCKS = 5000;
 
 const log = (...a) => console.log(new Date().toISOString(), ...a);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -118,7 +120,7 @@ function buildStatus(state, snapshot) {
   const parts = Object.entries(config.parts).map(([part, meta]) => {
     const p = store?.parts[part];
     const st = state.availability[`${config.storeNumber}|${part}`];
-    return { part, ...meta, available: Boolean(p?.available), quote: p?.quote ?? 'No data', since: st?.since ?? null };
+    return { part, ...meta, available: Boolean(p?.available), quote: p?.quote ?? 'No data', since: st?.since ?? null, ...restockStats(state.restocks, part) };
   });
   const nearby = (snapshot?.stores ?? [])
     .filter((s) => s.storeNumber !== config.storeNumber)
@@ -149,11 +151,28 @@ function buildStatus(state, snapshot) {
   };
 }
 
+// Restock log survives Actions cache eviction by re-seeding from the deployed site.
+async function seedRestocks(state) {
+  if (Array.isArray(state.restocks)) return;
+  state.restocks = [];
+  if (!env.SITE_URL) return;
+  try {
+    const res = await fetch(new URL(`history.json?t=${Date.now()}`, env.SITE_URL), { signal: AbortSignal.timeout(10000) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (Array.isArray(data.restocks)) state.restocks = data.restocks;
+    log(`Seeded ${state.restocks.length} restock records from ${env.SITE_URL}history.json`);
+  } catch (e) {
+    log(`No previous history.json to seed from (${e.message}).`);
+  }
+}
+
 async function main() {
   const testPush = process.argv.includes('--test-push');
   const state = readJson(STATE_FILE, null) ?? {};
   state.availability ??= {};
   state.events ??= [];
+  await seedRestocks(state);
   let snapshot = state.lastSnapshot ?? null;
 
   if (testPush) {
@@ -165,14 +184,16 @@ async function main() {
     log('Test push result:', r);
   }
 
-  for (let i = 0; i < ITERATIONS; i++) {
-    if (i > 0) await sleep(INTERVAL_MS);
+  const deadline = Date.now() + DURATION_MS;
+  for (let i = 0; ; i++) {
+    const startedAt = Date.now();
     const now = new Date().toISOString();
     state.lastCheckAt = now;
     try {
       snapshot = await fetchFeed();
       const { next, changes } = diffSnapshot(state.availability, snapshot, now);
       state.availability = next;
+      state.restocks = updateRestocks(state.restocks, changes, config.storeNumber, now, config.parts).slice(0, MAX_RESTOCKS);
       state.lastSuccessAt = now;
       state.lastError = null;
       state.lastSnapshot = snapshot;
@@ -181,7 +202,7 @@ async function main() {
       const summary = bayshore
         ? Object.entries(bayshore.parts).map(([p, v]) => `${p}:${v.available ? 'YES' : 'no'}`).join(' ')
         : `store ${config.storeNumber} not in response`;
-      log(`Check ${i + 1}/${ITERATIONS}: ${summary}`);
+      log(`Check ${i + 1}: ${summary}`);
 
       for (const c of changes) {
         const meta = config.parts[c.part] ?? { name: c.part };
@@ -198,16 +219,28 @@ async function main() {
       state.events = state.events.slice(0, MAX_EVENTS);
     } catch (e) {
       state.lastError = { at: now, message: e.message, status: e.status ?? null };
-      log(`Check ${i + 1}/${ITERATIONS} failed: ${e.message}`);
+      log(`Check ${i + 1} failed: ${e.message}`);
       if (e.status === 541 || e.status === 403) {
         log('Apple is rate-limiting this runner; stopping this run early.');
         break;
       }
     }
+
+    // Fixed cadence measured start-to-start, with a little jitter.
+    const wait = INTERVAL_MS - (Date.now() - startedAt) + Math.round((Math.random() * 2 - 1) * JITTER_MS);
+    if (Date.now() + Math.max(wait, 0) >= deadline) break;
+    await sleep(Math.max(wait, 1000));
   }
 
   writeJson(STATE_FILE, state);
   writeJson(path.join(OUT_DIR, 'status.json'), buildStatus(state, snapshot));
+  writeJson(path.join(OUT_DIR, 'history.json'), {
+    generatedAt: new Date().toISOString(),
+    storeNumber: config.storeNumber,
+    storeName: config.storeName,
+    parts: config.parts,
+    restocks: state.restocks,
+  });
   log(`Wrote ${path.relative(ROOT, path.join(OUT_DIR, 'status.json'))}`);
 }
 

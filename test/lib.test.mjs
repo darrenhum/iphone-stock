@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildFeedUrl, isAvailable, parseFeed, diffSnapshot } from '../scripts/lib.mjs';
+import { buildFeedUrl, isAvailable, parseFeed, diffSnapshot, updateRestocks, restockStats } from '../scripts/lib.mjs';
 
 const config = {
   country: 'ca',
@@ -81,4 +81,29 @@ test('diffSnapshot reports only transitions (and initial in-stock)', () => {
 
   const fresh = diffSnapshot({}, parseFeed(feed(true), config), t0);
   assert.equal(fresh.changes.length, 1, 'in stock on first run alerts');
+});
+
+test('updateRestocks logs each restock with start, end and duration', () => {
+  const meta = { 'MK244VC/A': { name: 'iPhone Duo 256GB Star White' } };
+  const up = (part, available, storeNumber = 'R490') => [{ storeNumber, part, available }];
+  let log = updateRestocks([], up('MK244VC/A', true), 'R490', '2026-01-01T10:00:00Z', meta);
+  assert.equal(log.length, 1);
+  assert.deepEqual(log[0], { part: 'MK244VC/A', name: 'iPhone Duo 256GB Star White', storeNumber: 'R490', start: '2026-01-01T10:00:00Z', end: null, durationSec: null });
+
+  log = updateRestocks(log, up('MK244VC/A', true), 'R490', '2026-01-01T10:01:00Z', meta);
+  assert.equal(log.length, 1, 'no duplicate while already open');
+
+  log = updateRestocks(log, up('MK244VC/A', false), 'R490', '2026-01-01T10:05:30Z', meta);
+  assert.equal(log[0].end, '2026-01-01T10:05:30Z');
+  assert.equal(log[0].durationSec, 330);
+
+  log = updateRestocks(log, up('MK244VC/A', true, 'R399'), 'R490', '2026-01-01T11:00:00Z', meta);
+  assert.equal(log.length, 1, 'other stores ignored');
+
+  log = updateRestocks(log, up('MK244VC/A', true), 'R490', '2026-01-02T09:00:00Z', meta);
+  assert.equal(log.length, 2);
+  assert.equal(log[0].start, '2026-01-02T09:00:00Z', 'newest first');
+
+  assert.deepEqual(restockStats(log, 'MK244VC/A'), { restockCount: 2, lastRestockAt: '2026-01-02T09:00:00Z', avgDurationSec: 330 });
+  assert.deepEqual(restockStats(log, 'MK254VC/A'), { restockCount: 0, lastRestockAt: null, avgDurationSec: null });
 });
