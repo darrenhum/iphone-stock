@@ -218,7 +218,7 @@ async function refreshNotifyUI() {
     $('sub-panel').hidden = true;
   }
   $('notify-btn').disabled = perm === 'denied' || !appConfig.vapidPublicKey;
-  if (!appConfig.vapidPublicKey) $('notify-status').textContent = 'Push not configured yet (run npm run setup-push).';
+  if (!appConfig.vapidPublicKey) $('notify-status').innerHTML = 'Push isn’t set up yet — <a href="setup.html">create push keys</a>.';
 }
 
 async function toggleNotifications() {

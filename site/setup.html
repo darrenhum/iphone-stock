@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <title>Push setup · Duo Stock</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .key { width: 100%; background: var(--card2); color: var(--text); border: 0; border-radius: 10px; padding: 10px; font: 13px ui-monospace, Menlo, monospace; word-break: break-all; resize: none; }
+    ol { padding-left: 20px; margin: 8px 0 0; } li { margin: 6px 0; }
+    .card h3 { margin-bottom: 6px; }
+    .warn { color: var(--amber); }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <p class="eyebrow">One-time setup</p>
+      <h1>Push keys</h1>
+      <p class="sub">Generates the VAPID key pair for iOS notifications in your browser. Nothing is sent anywhere.</p>
+    </header>
+
+    <section id="done" class="card hint" hidden>
+      <h3>✅ Push is already configured</h3>
+      <p class="small">This site already has a public key. Only create new keys if you lost the private one, and re-enable notifications on each device afterwards.</p>
+    </section>
+
+    <button id="gen" class="btn wide">Generate keys</button>
+
+    <section id="out" hidden>
+      <div class="card">
+        <h3>1. Secret <code>VAPID_PRIVATE_KEY</code></h3>
+        <p class="small warn">Keep this private. Don't paste it anywhere except the GitHub secret.</p>
+        <textarea id="priv" class="key" rows="2" readonly></textarea>
+        <div class="row gap">
+          <button class="btn ghost" data-copy="priv">Copy</button>
+          <a id="secret-link" class="btn" target="_blank" rel="noopener">Open “New secret”</a>
+        </div>
+        <ol class="small">
+          <li>Name: <code>VAPID_PRIVATE_KEY</code></li>
+          <li>Secret: paste the value above → <strong>Add secret</strong></li>
+        </ol>
+      </div>
+      <br>
+      <div class="card">
+        <h3>2. Variable <code>VAPID_PUBLIC_KEY</code></h3>
+        <textarea id="pub" class="key" rows="3" readonly></textarea>
+        <div class="row gap">
+          <button class="btn ghost" data-copy="pub">Copy</button>
+          <a id="var-link" class="btn" target="_blank" rel="noopener">Open “New variable”</a>
+        </div>
+        <ol class="small">
+          <li>Name: <code>VAPID_PUBLIC_KEY</code></li>
+          <li>Value: paste the value above → <strong>Add variable</strong></li>
+        </ol>
+      </div>
+      <br>
+      <div class="card">
+        <h3>3. Redeploy</h3>
+        <p class="small">Open <a id="run-link" target="_blank" rel="noopener">Actions → Stock check &amp; deploy</a> → <strong>Run workflow</strong>. Or just wait up to 5 minutes for the next scheduled run.</p>
+        <p class="small">Then open <strong>Duo Stock</strong> from your Home Screen and tap <strong>Enable notifications</strong>.</p>
+      </div>
+    </section>
+
+    <a class="btn ghost wide" href="./">← Back to tracker</a>
+  </main>
+  <script type="module">
+    const $ = (id) => document.getElementById(id);
+    const b64url = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+    const cfg = await fetch(`app-config.json?t=${Date.now()}`, { cache: 'no-store' }).then((r) => r.json()).catch(() => ({}));
+    const repo = cfg.repository || 'darrenhum/iphone-stock';
+    $('secret-link').href = `https://github.com/${repo}/settings/secrets/actions/new`;
+    $('var-link').href = `https://github.com/${repo}/settings/variables/actions/new`;
+    $('run-link').href = `https://github.com/${repo}/actions/workflows/${cfg.pollWorkflow || 'stock.yml'}`;
+    if (cfg.vapidPublicKey) $('done').hidden = false;
+
+    $('gen').onclick = async () => {
+      // VAPID = ECDSA P-256. web-push expects the raw 32-byte private scalar (JWK "d")
+      // and the 65-byte uncompressed public point, both base64url-encoded.
+      const pair = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']);
+      const jwk = await crypto.subtle.exportKey('jwk', pair.privateKey);
+      const rawPub = await crypto.subtle.exportKey('raw', pair.publicKey);
+      $('priv').value = jwk.d;
+      $('pub').value = b64url(rawPub);
+      $('out').hidden = false;
+      $('gen').textContent = 'Generate new keys';
+    };
+
+    document.addEventListener('click', async (e) => {
+      const id = e.target.dataset?.copy;
+      if (!id) return;
+      await navigator.clipboard.writeText($(id).value);
+      e.target.textContent = 'Copied ✓';
+      setTimeout(() => (e.target.textContent = 'Copy'), 1500);
+    });
+  </script>
+</body>
+</html>
