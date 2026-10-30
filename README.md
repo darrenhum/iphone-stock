@@ -35,6 +35,8 @@ GitHub Actions (cron, check every ~20 s) ──► Apple pickup feed
    npm ci && npm run setup-push
    ```
    This saves the `VAPID_PRIVATE_KEY` secret and the `VAPID_PUBLIC_KEY` variable, then redeploys.
+
+   **No computer?** Open https://darrenhum.github.io/iphone-stock/setup.html (this works on iPhone too). It generates the keys in your browser and links straight to GitHub's *New secret* and *New variable* pages. Paste the two values there, then run the workflow.
 3. **On your iPhone (iOS 16.4+):**
    1. Open the site in Safari, tap **Share → Add to Home Screen**, then open **Duo Stock** from the Home Screen.
    2. Tap **Enable notifications** and allow them.

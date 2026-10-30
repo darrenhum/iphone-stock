@@ -107,3 +107,16 @@ test('updateRestocks logs each restock with start, end and duration', () => {
   assert.deepEqual(restockStats(log, 'MK244VC/A'), { restockCount: 2, lastRestockAt: '2026-01-02T09:00:00Z', avgDurationSec: 330 });
   assert.deepEqual(restockStats(log, 'MK254VC/A'), { restockCount: 0, lastRestockAt: null, avgDurationSec: null });
 });
+
+test('browser-generated VAPID keys (WebCrypto, as in site/setup.html) are accepted by web-push', async () => {
+  const { default: webpush } = await import('web-push');
+  const b64url = (buf) => Buffer.from(buf).toString('base64url');
+  const pair = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']);
+  const priv = (await crypto.subtle.exportKey('jwk', pair.privateKey)).d;
+  const pub = b64url(await crypto.subtle.exportKey('raw', pair.publicKey));
+  assert.equal(Buffer.from(pub, 'base64url').length, 65);
+  assert.equal(Buffer.from(priv, 'base64url').length, 32);
+  webpush.setVapidDetails('https://darrenhum.github.io/iphone-stock/', pub, priv);
+  const headers = webpush.getVapidHeaders('https://web.push.apple.com', 'https://darrenhum.github.io/iphone-stock/', pub, priv, 'aes128gcm');
+  assert.match(headers.Authorization, /^vapid t=.+, k=/);
+});
